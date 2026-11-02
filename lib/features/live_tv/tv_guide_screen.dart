@@ -278,6 +278,20 @@ class _TvGuideScreenState extends ConsumerState<TvGuideScreen>
     _focusCategory(_shownCategory);
   }
 
+  // Moves the remote focus through the category list, including items
+  // that are currently outside the lazily-built viewport.
+  void _moveCategoryFocus(int delta) {
+    final categories = _categoryKeys;
+    if (categories.isEmpty || !_categoryScroll.hasClients) return;
+    final currentKey = _focusedCategory ?? _shownCategory;
+    final currentIndex = currentKey == null ? -1 : categories.indexOf(currentKey);
+    final targetIndex = (currentIndex < 0 ? 0 : currentIndex + delta)
+        .clamp(0, categories.length - 1)
+        .toInt();
+    if (targetIndex == currentIndex) return;
+    _focusCategory(categories[targetIndex]);
+  }
+
   // Focuses a category, scrolling it into the lazy list first when it isn't
   // built. Never leaves the user stranded: falls back to any built category,
   // then to the guide's first row.
@@ -473,6 +487,8 @@ class _TvGuideScreenState extends ConsumerState<TvGuideScreen>
                   onRight: _enterGrid,
                   onLeft: () =>
                       TvNavRailFocus.maybeOf(context)?.requestFocus(),
+                  onUp: () => _moveCategoryFocus(-1),
+                  onDown: () => _moveCategoryFocus(1),
                 ),
               },
               child: ListView.builder(
@@ -1104,11 +1120,15 @@ class _ColumnDirectionalAction extends Action<DirectionalFocusIntent> {
     required this.columnNode,
     required this.onRight,
     required this.onLeft,
+    required this.onUp,
+    required this.onDown,
   });
 
   final FocusNode columnNode;
   final VoidCallback onRight;
   final VoidCallback onLeft;
+  final VoidCallback onUp;
+  final VoidCallback onDown;
 
   @override
   Object? invoke(DirectionalFocusIntent intent) {
@@ -1118,14 +1138,9 @@ class _ColumnDirectionalAction extends Action<DirectionalFocusIntent> {
       case TraversalDirection.left:
         onLeft();
       case TraversalDirection.up:
+        onUp();
       case TraversalDirection.down:
-        final before = primaryFocus;
-        if (before == null || !before.focusInDirection(intent.direction)) {
-          break;
-        }
-        scheduleMicrotask(() {
-          if (!columnNode.hasFocus) before.requestFocus();
-        });
+        onDown();
     }
     return true;
   }
