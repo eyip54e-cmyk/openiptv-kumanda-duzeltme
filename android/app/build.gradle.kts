@@ -16,6 +16,9 @@ val keystoreProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 val hasReleaseKey = keystoreProperties.getProperty("storeFile") != null
+// The remote-navigation test APK can skip the unrelated native OpenVPN build.
+// Normal builds keep this feature enabled.
+val skipOpenVpnNative = providers.gradleProperty("skipOpenVpnNative").orNull == "true"
 
 android {
     namespace = "com.openiptv.app"
@@ -42,20 +45,24 @@ android {
 
         // Built-in OpenVPN (Power User Tools, #41): OpenVPN 3 core + mbed TLS,
         // compiled from pinned sources fetched by android/openvpn-deps.sh.
-        externalNativeBuild {
-            cmake {
-                arguments += listOf(
-                    "-DOVPN_DEPS=${rootProject.file(".ovpn-deps").absolutePath}",
-                    "-DANDROID_STL=c++_static",
-                )
+        if (!skipOpenVpnNative) {
+            externalNativeBuild {
+                cmake {
+                    arguments += listOf(
+                        "-DOVPN_DEPS=${rootProject.file(".ovpn-deps").absolutePath}",
+                        "-DANDROID_STL=c++_static",
+                    )
+                }
             }
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
+    if (!skipOpenVpnNative) {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
         }
     }
 
@@ -95,8 +102,10 @@ val fetchOpenVpnDeps by tasks.registering(Exec::class) {
     commandLine("bash", rootProject.file("openvpn-deps.sh").absolutePath)
     outputs.file(rootProject.file(".ovpn-deps/.ready"))
 }
-tasks.matching { it.name.startsWith("configureCMake") || it.name.startsWith("buildCMake") }
-    .configureEach { dependsOn(fetchOpenVpnDeps) }
+if (!skipOpenVpnNative) {
+    tasks.matching { it.name.startsWith("configureCMake") || it.name.startsWith("buildCMake") }
+        .configureEach { dependsOn(fetchOpenVpnDeps) }
+}
 
 kotlin {
     compilerOptions {
