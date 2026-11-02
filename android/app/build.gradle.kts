@@ -71,6 +71,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Keep the test build side-by-side with the user's installed app.
+            applicationIdSuffix = ".remoteTest"
+            versionNameSuffix = "-remote-test"
+        }
         release {
             signingConfig = signingConfigs.getByName(if (hasReleaseKey) "release" else "debug")
             // Resource shrinking (on by default for release) strips drawables that
