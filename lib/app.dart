@@ -740,7 +740,9 @@ class _TvNavRailState extends State<_TvNavRail> {
   // navigator (e.g. the Live TV home under a category page) — invisible
   // focus, and OK then opened a category the user couldn't see.
   KeyEventResult _onKey(FocusNode _, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.arrowRight) {
       // Back into the *visible* page, where focus last was. Directional
