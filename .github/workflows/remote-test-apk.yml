@@ -41,6 +41,8 @@ jobs:
         run: flutter pub get
 
       - name: Build separate-install debug APK
+        env:
+          ORG_GRADLE_PROJECT_skipOpenVpnNative: "true"
         run: flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload test APK
