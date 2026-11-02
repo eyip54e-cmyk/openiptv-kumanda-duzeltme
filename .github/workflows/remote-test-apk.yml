@@ -41,7 +41,7 @@ jobs:
         run: flutter pub get
 
       - name: Build separate-install debug APK
-        run: flutter build apk --debug
+        run: flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload test APK
         uses: actions/upload-artifact@v4
